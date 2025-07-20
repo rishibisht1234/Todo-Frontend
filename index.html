@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Todo App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+  <div class="max-w-2xl mx-auto p-4">
+    <h1 class="text-3xl font-bold mb-6 text-center">Todo App</h1>
+
+    <!-- Login Section -->
+    <div id="login-form" class="bg-white p-6 rounded shadow mb-6">
+      <h2 class="text-xl font-semibold mb-4">Login</h2>
+      <input id="login-username" type="text" placeholder="Username" class="w-full p-2 border mb-2 rounded" />
+      <input id="login-password" type="password" placeholder="Password" class="w-full p-2 border mb-4 rounded" />
+      <button onclick="login()" class="bg-blue-500 text-white py-2 px-4 rounded w-full">Login</button>
+      <p class="mt-4 text-sm text-gray-600">Don't have an account? <a href="#" onclick="toggleForm('register')" class="text-blue-500">Register here</a></p>
+    </div>
+
+    <!-- Register Section -->
+    <div id="register-form" class="bg-white p-6 rounded shadow mb-6 hidden">
+      <h2 class="text-xl font-semibold mb-4">Register</h2>
+      <input id="register-username" type="text" placeholder="Username" class="w-full p-2 border mb-2 rounded" />
+      <input id="register-email" type="email" placeholder="Email" class="w-full p-2 border mb-2 rounded" />
+      <input id="register-password" type="password" placeholder="Password" class="w-full p-2 border mb-4 rounded" />
+      <button onclick="register()" class="bg-green-500 text-white py-2 px-4 rounded w-full">Register</button>
+      <p class="mt-4 text-sm text-gray-600">Already have an account? <a href="#" onclick="toggleForm('login')" class="text-blue-500">Login here</a></p>
+    </div>
+
+    <!-- Todo Section -->
+    <div id="todo-app" class="hidden">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-semibold">Your Tasks</h2>
+        <button onclick="logout()" class="text-sm bg-red-500 text-white px-3 py-1 rounded">Logout</button>
+      </div>
+
+      <!-- Search -->
+      <div class="mb-4 flex space-x-2">
+        <input id="search-input" type="text" placeholder="Search tasks..." class="flex-1 p-2 border rounded" />
+        <button onclick="searchTasks()" class="bg-blue-500 text-white px-4 py-2 rounded">Search</button>
+        <button onclick="clearSearch()" class="bg-gray-400 text-white px-4 py-2 rounded">Clear</button>
+      </div>
+
+      <!-- Create/Update Task -->
+      <div class="mb-6 flex space-x-2">
+        <input id="new-title" type="text" placeholder="New Task Title" class="flex-1 p-2 border rounded" />
+        <input id="new-desc" type="text" placeholder="Description" class="flex-1 p-2 border rounded" />
+        <input id="new-deadline" type="date" class="p-2 border rounded" />
+        <button id="create-btn" class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">Add</button>
+      </div>
+
+      <!-- Task List -->
+      <div id="task-list" class="space-y-2"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://todoapi-3kjr.onrender.com/';
+    let editingId = null;
+
+    const authHeader = () => ({ 'Authorization': 'Token ' + localStorage.getItem('token') });
+
+    const toggleForm = (form) => {
+      document.getElementById('login-form').classList.toggle('hidden', form !== 'login');
+      document.getElementById('register-form').classList.toggle('hidden', form !== 'register');
+    };
+
+    const login = async () => {
+      const username = document.getElementById('login-username').value;
+      const password = document.getElementById('login-password').value;
+
+      const res = await fetch(API_BASE + 'login/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        document.getElementById('login-form').classList.add('hidden');
+        document.getElementById('todo-app').classList.remove('hidden');
+        loadTasks();
+      } else {
+        alert('Login failed');
+      }
+    };
+
+    const register = async () => {
+      const username = document.getElementById('register-username').value;
+      const email = document.getElementById('register-email').value;
+      const password = document.getElementById('register-password').value;
+
+      await fetch(API_BASE + 'register/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password })
+      });
+
+      toggleForm('login');
+      alert('Registration successful. Please login.');
+    };
+
+    const logout = async () => {
+      await fetch(API_BASE + 'logout/', { method: 'POST', headers: authHeader() });
+      localStorage.removeItem('token');
+      document.getElementById('todo-app').classList.add('hidden');
+      document.getElementById('login-form').classList.remove('hidden');
+    };
+
+    const loadTasks = async (query = '') => {
+      const url = query ? `task-search/?q=${query}` : 'task-list/';
+      const res = await fetch(API_BASE + url, { headers: authHeader() });
+      const tasks = await res.json();
+      const list = document.getElementById('task-list');
+      list.innerHTML = '';
+      tasks.forEach(t => {
+        const div = document.createElement('div');
+        div.className = 'bg-white p-4 rounded shadow flex justify-between items-center';
+        div.innerHTML = `
+          <div>
+            <h4 class="font-semibold ${t.completed ? 'line-through text-gray-400' : ''}">${t.title}</h4>
+            <p class="text-sm text-gray-600">${t.description || ''}</p>
+            <p class="text-xs text-gray-400">Deadline: ${t.deadline ? new Date(t.deadline).toLocaleDateString('en-IN', {
+  day: 'numeric', month: 'long', year: 'numeric'
+}) : 'N/A'}</p>
+
+          </div>
+          <div class="space-x-2">
+            <button onclick="toggle(${t.id})" class="py-1 px-3 rounded ${t.completed ? 'bg-yellow-500' : 'bg-green-500'} text-white">${t.completed ? 'Undo' : 'Done'}</button>
+            <button onclick="editTask(${t.id}, '${t.title}', \`${t.description || ''}\`, '${t.deadline || ''}')" class="py-1 px-3 bg-blue-500 rounded text-white">Edit</button>
+            <button onclick="deleteTask(${t.id})" class="py-1 px-3 bg-red-500 rounded text-white">Delete</button>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+    };
+
+    const toggle = async (id) => {
+      await fetch(API_BASE + `task-toggle/${id}`, { method: 'PUT', headers: authHeader() });
+      loadTasks(document.getElementById('search-input').value);
+    };
+
+    const deleteTask = async (id) => {
+      await fetch(API_BASE + `task-delete/${id}`, { method: 'DELETE', headers: authHeader() });
+      loadTasks(document.getElementById('search-input').value);
+    };
+
+    const editTask = (id, title, description, deadline) => {
+      document.getElementById('new-title').value = title;
+      document.getElementById('new-desc').value = description;
+      document.getElementById('new-deadline').value = deadline;
+      document.getElementById('create-btn').textContent = 'Update';
+      editingId = id;
+    };
+
+    document.getElementById('create-btn').addEventListener('click', async () => {
+      const title = document.getElementById('new-title').value;
+      const description = document.getElementById('new-desc').value;
+      const deadline = document.getElementById('new-deadline').value;
+
+      if (editingId) {
+        await fetch(API_BASE + `task-update/${editingId}`, {
+          method: 'PUT',
+          headers: { ...authHeader(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, description, deadline })
+        });
+        editingId = null;
+        document.getElementById('create-btn').textContent = 'Add';
+      } else {
+        await fetch(API_BASE + 'task-create/', {
+          method: 'POST',
+          headers: { ...authHeader(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, description, deadline })
+        });
+      }
+
+      document.getElementById('new-title').value = '';
+      document.getElementById('new-desc').value = '';
+      document.getElementById('new-deadline').value = '';
+      loadTasks(document.getElementById('search-input').value);
+    });
+
+    const searchTasks = () => loadTasks(document.getElementById('search-input').value);
+    const clearSearch = () => {
+      document.getElementById('search-input').value = '';
+      loadTasks();
+    };
+
+    if (localStorage.getItem('token')) {
+      document.getElementById('login-form').classList.add('hidden');
+      document.getElementById('todo-app').classList.remove('hidden');
+      loadTasks();
+    }
+  </script>
+</body>
+</html>

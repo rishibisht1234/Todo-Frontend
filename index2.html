@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Todo App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans min-h-screen">
+  <div class="max-w-3xl mx-auto p-6">
+    <h1 class="text-4xl font-extrabold mb-8 text-center text-indigo-400">Todo App</h1>
+
+    <!-- Login Section -->
+    <div id="login-form" class="bg-gray-800 p-8 rounded-lg shadow-lg mb-8 border border-gray-700">
+      <h2 class="text-2xl font-semibold mb-6 text-indigo-300">Login</h2>
+      <input id="login-username" type="text" placeholder="Username" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg mb-4 text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+      <input id="login-password" type="password" placeholder="Password" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg mb-6 text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+      <button onclick="login()" class="bg-indigo-600 text-white py-3 px-6 rounded-lg w-full hover:bg-indigo-700 transition duration-200">Login</button>
+      <p class="mt-6 text-sm text-gray-400">Don't have an account? <a href="#" onclick="toggleForm('register')" class="text-indigo-400 hover:underline">Register here</a></p>
+    </div>
+
+    <!-- Register Section -->
+    <div id="register-form" class="bg-gray-800 p-8 rounded-lg shadow-lg mb-8 border border-gray-700 hidden">
+      <h2 class="text-2xl font-semibold mb-6 text-indigo-300">Register</h2>
+      <input id="register-username" type="text" placeholder="Username" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg mb-4 text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+      <input id="register-email" type="email" placeholder="Email" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg mb-4 text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+      <input id="register-password" type="password" placeholder="Password" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg mb-6 text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+      <button onclick="register()" class="bg-green-600 text-white py-3 px-6 rounded-lg w-full hover:bg-green-700 transition duration-200">Register</button>
+      <p class="mt-6 text-sm text-gray-400">Already have an account? <a href="#" onclick="toggleForm('login')" class="text-indigo-400 hover:underline">Login here</a></p>
+    </div>
+
+    <!-- Todo Section -->
+    <div id="todo-app" class="hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-3xl font-semibold text-indigo-300">Your Tasks</h2>
+        <button onclick="logout()" class="text-sm bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition duration-200">Logout</button>
+      </div>
+
+      <!-- Search -->
+      <div class="mb-6 flex space-x-3">
+        <input id="search-input" type="text" placeholder="Search tasks..." class="flex-1 p-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        <button onclick="searchTasks()" class="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition duration-200">Search</button>
+        <button onclick="clearSearch()" class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition duration-200">Clear</button>
+      </div>
+
+      <!-- Create/Update Task -->
+      <div class="mb-8 flex space-x-3">
+        <input id="new-title" type="text" placeholder="New Task Title" class="flex-1 p-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        <input id="new-desc" type="text" placeholder="Description" class="flex-1 p-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        <input id="new-deadline" type="date" class="p-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        <button id="create-btn" class="bg-indigo-600 text-white py-3 px-6 rounded-lg hover:bg-indigo-700 transition duration-200">Add</button>
+      </div>
+
+      <!-- Task List -->
+      <div id="task-list" class="space-y-4"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://todoapi-3kjr.onrender.com/';
+    let editingId = null;
+
+    const authHeader = () => ({ 'Authorization': 'Token ' + localStorage.getItem('token') });
+
+    const toggleForm = (form) => {
+      document.getElementById('login-form').classList.toggle('hidden', form !== 'login');
+      document.getElementById('register-form').classList.toggle('hidden', form !== 'register');
+    };
+
+    const login = async () => {
+      const username = document.getElementById('login-username').value;
+      const password = document.getElementById('login-password').value;
+
+      const res = await fetch(API_BASE + 'login/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        document.getElementById('login-form').classList.add('hidden');
+        document.getElementById('todo-app').classList.remove('hidden');
+        loadTasks();
+      } else {
+        alert('Login failed');
+      }
+    };
+
+    const register = async () => {
+      const username = document.getElementById('register-username').value;
+      const email = document.getElementById('register-email').value;
+      const password = document.getElementById('register-password').value;
+
+      await fetch(API_BASE + 'register/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password })
+      });
+
+      toggleForm('login');
+      alert('Registration successful. Please login.');
+    };
+
+    const logout = async () => {
+      await fetch(API_BASE + 'logout/', { method: 'POST', headers: authHeader() });
+      localStorage.removeItem('token');
+      document.getElementById('todo-app').classList.add('hidden');
+      document.getElementById('login-form').classList.remove('hidden');
+    };
+
+    const loadTasks = async (query = '') => {
+      const url = query ? `task-search/?q=${query}` : 'task-list/';
+      const res = await fetch(API_BASE + url, { headers: authHeader() });
+      const tasks = await res.json();
+      const list = document.getElementById('task-list');
+      list.innerHTML = '';
+      tasks.forEach(t => {
+        const div = document.createElement('div');
+        div.className = 'bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 flex justify-between items-center';
+        div.innerHTML = `
+          <div>
+            <h4 class="font-semibold text-lg ${t.completed ? 'line-through text-gray-500' : 'text-gray-100'}">${t.title}</h4>
+            <p class="text-sm text-gray-400">${t.description || ''}</p>
+            <p class="text-xs text-gray-500">Deadline: ${t.deadline ? new Date(t.deadline).toLocaleDateString('en-IN', {
+  day: 'numeric', month: 'long', year: 'numeric'
+}) : 'N/A'}</p>
+          </div>
+          <div class="space-x-3">
+            <button onclick="toggle(${t.id})" class="py-2 px-4 rounded-lg ${t.completed ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'} text-white transition duration-200">${t.completed ? 'Undo' : 'Done'}</button>
+            <button onclick="editTask(${t.id}, '${t.title}', \`${t.description || ''}\`, '${t.deadline || ''}')" class="py-2 px-4 bg-indigo-600 rounded-lg text-white hover:bg-indigo-700 transition duration-200">Edit</button>
+            <button onclick="deleteTask(${t.id})" class="py-2 px-4 bg-red-600 rounded-lg text-white hover:bg-red-700 transition duration-200">Delete</button>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+    };
+
+    const toggle = async (id) => {
+      await fetch(API_BASE + `task-toggle/${id}`, { method: 'PUT', headers: authHeader() });
+      loadTasks(document.getElementById('search-input').value);
+    };
+
+    const deleteTask = async (id) => {
+      await fetch(API_BASE + `task-delete/${id}`, { method: 'DELETE', headers: authHeader() });
+      loadTasks(document.getElementById('search-input').value);
+    };
+
+    const editTask = (id, title, description, deadline) => {
+      document.getElementById('new-title').value = title;
+      document.getElementById('new-desc').value = description;
+      document.getElementById('new-deadline').value = deadline;
+      document.getElementById('create-btn').textContent = 'Update';
+      editingId = id;
+    };
+
+    document.getElementById('create-btn').addEventListener('click', async () => {
+      const title = document.getElementById('new-title').value;
+      const description = document.getElementById('new-desc').value;
+      const deadline = document.getElementById('new-deadline').value;
+
+      if (editingId) {
+        await fetch(API_BASE + `task-update/${editingId}`, {
+          method: 'PUT',
+          headers: { ...authHeader(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, description, deadline })
+        });
+        editingId = null;
+        document.getElementById('create-btn').textContent = 'Add';
+      } else {
+        await fetch(API_BASE + 'task-create/', {
+          method: 'POST',
+          headers: { ...authHeader(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, description, deadline })
+        });
+      }
+
+      document.getElementById('new-title').value = '';
+      document.getElementById('new-desc').value = '';
+      document.getElementById('new-deadline').value = '';
+      loadTasks(document.getElementById('search-input').value);
+    });
+
+    const searchTasks = () => loadTasks(document.getElementById('search-input').value);
+    const clearSearch = () => {
+      document.getElementById('search-input').value = '';
+      loadTasks();
+    };
+
+    if (localStorage.getItem('token')) {
+      document.getElementById('login-form').classList.add('hidden');
+      document.getElementById('todo-app').classList.remove('hidden');
+      loadTasks();
+    }
+  </script>
+</body>
+</html>
