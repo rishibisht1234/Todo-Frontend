@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo App - Login</title>
+</head>
+<body>
+  <div>
+    <h1>Todo App</h1>
+
+    <!-- Login Section -->
+    <div id="login-form">
+      <h2>Login</h2>
+      <input id="login-username" type="text" placeholder="Username">
+      <input id="login-password" type="password" placeholder="Password">
+      <button onclick="login()">Login</button>
+      <p>Don't have an account? <a href="#" onclick="toggleForm('register')">Register here</a></p>
+    </div>
+
+    <!-- Register Section -->
+    <div id="register-form" style="display: none;">
+      <h2>Register</h2>
+      <input id="register-username" type="text" placeholder="Username">
+      <input id="register-email" type="email" placeholder="Email">
+      <input id="register-password" type="password" placeholder="Password">
+      <button onclick="register()">Register</button>
+      <p>Already have an account? <a href="#" onclick="toggleForm('login')">Login here</a></p>
+    </div>
+  </div>
+  <script src="auth.js"></script>
+</body>
+</html>

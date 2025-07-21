@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo App - Tasks</title>
+</head>
+<body>
+  <div id="todo-app">
+    <h2>Your Tasks</h2>
+    <button onclick="logout()">Logout</button>
+
+    <!-- Search -->
+    <div>
+      <input id="search-input" type="text" placeholder="Search tasks...">
+      <button onclick="searchTasks()">Search</button>
+      <button onclick="clearSearch()">Clear</button>
+    </div>
+
+    <!-- Create/Update Task -->
+    <div>
+      <input id="new-title" type="text" placeholder="New Task Title">
+      <input id="new-desc" type="text" placeholder="Description">
+      <input id="new-deadline" type="date">
+      <button id="create-btn">Add</button>
+    </div>
+
+    <!-- Task List -->
+    <div id="task-list"></div>
+  </div>
+  <script src="todo.js"></script>
+</body>
+</html>
